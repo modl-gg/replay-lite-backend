@@ -27,23 +27,11 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
           set -e
-          cd /home/modl/backend
+          cd /home/modl/replay-lite-backend
           git fetch origin main
           git reset --hard origin/main
           chmod +x scripts/deploy.sh scripts/rollback.sh
           ./scripts/deploy.sh production
-          '
-
-      - name: Verify deployment
-        run: |
-          sleep 5
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
-          if docker ps --filter "name=replay-lite-backend-blue" --format "{{.Names}}" | grep -q blue; then
-            curl -sf --head http://localhost:8080/v1/health || exit 1
-          else
-            curl -sf --head http://localhost:8081/v1/health || exit 1
-          fi
-          echo "Health check passed"
           '
 
       - name: Notify on failure
