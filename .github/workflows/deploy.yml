@@ -1,0 +1,51 @@
+name: Deploy Production
+concurrency:
+  group: ${{ github.workflow }}
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
+          set -e
+          cd /home/modl/backend
+          git fetch origin main
+          git reset --hard origin/main
+          chmod +x scripts/deploy.sh scripts/rollback.sh
+          ./scripts/deploy.sh production
+          '
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
+          if docker ps --filter "name=replay-lite-backend-blue" --format "{{.Names}}" | grep -q blue; then
+            curl -sf --head http://localhost:8080/v1/health || exit 1
+          else
+            curl -sf --head http://localhost:8081/v1/health || exit 1
+          fi
+          echo "Health check passed"
+          '
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Production deployment failed!"
