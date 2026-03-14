@@ -4,8 +4,8 @@ set -e
 ENVIRONMENT=${1:-staging}
 IMAGE_TAG=${2:-}  # Optional: pre-built image tag from CI
 APP_NAME="replay-lite-backend"
-BLUE_PORT=8080
-GREEN_PORT=8081
+BLUE_PORT=4040
+GREEN_PORT=4041
 MAX_HEALTH_RETRIES=30
 HEALTH_RETRY_INTERVAL=2
 NGINX_UPSTREAM_CONF="/etc/nginx/conf.d/replay-lite-backend-upstream.conf"
